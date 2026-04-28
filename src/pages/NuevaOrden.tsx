@@ -159,7 +159,7 @@ export default function NuevaOrden() {
         prioridad: form.prioridad,
         centro_costo: form.centro_costo.trim() || null,
         notas: form.notas.trim() || null,
-        status: accion === "enviar" ? "en_revision" : "borrador",
+        status: (accion === "enviar" ? "en_revision" : "borrador") as "en_revision" | "borrador",
         firmas_requeridas: firmasRequeridas(monto, cfg),
       };
 
