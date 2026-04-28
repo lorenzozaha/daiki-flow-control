@@ -52,7 +52,8 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
     const mes = ahora.getUTCMonth() + 1;
     const anio = ahora.getUTCFullYear();
 
-    const statuses = bandeja === "verificador" ? ["en_revision"] : ["en_revision", "en_autorizacion"];
+    const statuses: ("en_revision" | "en_autorizacion")[] =
+      bandeja === "verificador" ? ["en_revision"] : ["en_revision", "en_autorizacion"];
 
     const [{ data: lista }, { data: limites }, { data: acum }, { data: revs }] = await Promise.all([
       supabase.from("ordenes_pago").select("*").in("status", statuses).order("created_at", { ascending: true }),
