@@ -14,6 +14,8 @@ import NuevaOrden from "./pages/NuevaOrden";
 import MisOrdenes from "./pages/MisOrdenes";
 import OrdenDetalle from "./pages/OrdenDetalle";
 import Placeholder from "./pages/Placeholder";
+import BandejaRevision from "./pages/BandejaRevision";
+import BandejaAutorizacion from "./pages/BandejaAutorizacion";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,12 +49,12 @@ const App = () => (
             {/* Fases siguientes */}
             <Route path="/bandeja/revision" element={
               <ProtectedRoute roles={["verificador", "admin"]}>
-                <AppLayout><Placeholder titulo="Bandeja de revisión" descripcion="Disponible en la próxima fase: aprobar órdenes según tu límite, devolver con comentario y ver tu acumulado mensual." /></AppLayout>
+                <AppLayout><BandejaRevision /></AppLayout>
               </ProtectedRoute>
             } />
             <Route path="/bandeja/autorizacion" element={
               <ProtectedRoute roles={["autorizador", "admin"]}>
-                <AppLayout><Placeholder titulo="Bandeja de autorización" descripcion="Disponible en la próxima fase: autorizar órdenes, revocar aprobaciones de verificadores en la ventana de 24h y gestionar multifirma." /></AppLayout>
+                <AppLayout><BandejaAutorizacion /></AppLayout>
               </ProtectedRoute>
             } />
             <Route path="/dashboard" element={
