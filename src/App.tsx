@@ -60,7 +60,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/dashboard" element={
-              <ProtectedRoute roles={["verificador", "autorizador", "admin"]}>
+              <ProtectedRoute roles={["autorizador", "admin"]}>
                 <AppLayout><Dashboard /></AppLayout>
               </ProtectedRoute>
             } />
