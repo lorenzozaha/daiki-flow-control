@@ -6,6 +6,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { fmtMXN, STATUS_LABEL } from "@/lib/business";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,15 +39,27 @@ interface Orden {
 const COLORS = ["#47D7AC", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316"];
 
 export default function Dashboard() {
+  const { user, hasRole } = useAuth();
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [ordenesPrev, setOrdenesPrev] = useState<Orden[]>([]);
   const [perfiles, setPerfiles] = useState<Record<string, string>>({});
+  const [scopeDeptos, setScopeDeptos] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   const today = new Date();
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const [desde, setDesde] = useState<Date>(firstOfMonth);
   const [hasta, setHasta] = useState<Date>(today);
+
+  // Scope del verificador (solo informativo: el filtrado real lo hace RLS)
+  useEffect(() => {
+    if (!user || !hasRole("verificador") || hasRole("admin") || hasRole("autorizador")) {
+      setScopeDeptos(null);
+      return;
+    }
+    supabase.from("verificador_scope").select("departamento").eq("user_id", user.id)
+      .then(({ data }) => setScopeDeptos((data ?? []).map((r: any) => r.departamento)));
+  }, [user, hasRole]);
 
   useEffect(() => {
     (async () => {
@@ -319,6 +332,13 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+
+      {scopeDeptos && scopeDeptos.length > 0 && (
+        <div className="rounded-md border border-info/30 bg-info/10 px-4 py-2.5 text-sm">
+          <span className="font-semibold text-info">Vista filtrada: </span>
+          solo se muestran órdenes de los departamentos {scopeDeptos.map((d) => `"${d}"`).join(", ")}.
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Kpi icon={<TrendingUp className="w-5 h-5" />} label="Total aprobado" value={fmtMXN(kpis.totalAprobado)} color="text-accent" />

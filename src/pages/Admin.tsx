@@ -179,22 +179,64 @@ function UsuarioRow({ user, onChanged }: { user: Usuario; onChanged: () => void 
   const [activo, setActivo] = useState(user.activo);
   const [roles, setRoles] = useState<string[]>(user.roles);
   const [newPassword, setNewPassword] = useState("");
+  const [deptos, setDeptos] = useState<string[]>([]);
+  const [scopeDeptos, setScopeDeptos] = useState<string[]>([]);
+  const [scopeOriginal, setScopeOriginal] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    setNombre(user.nombre);
+    setActivo(user.activo);
+    setRoles(user.roles);
+    setNewPassword("");
+    Promise.all([
+      supabase.from("catalogo_departamentos").select("nombre").eq("activo", true).order("nombre"),
+      supabase.from("verificador_scope").select("departamento").eq("user_id", user.id),
+    ]).then(([{ data: deps }, { data: sc }]) => {
+      setDeptos((deps ?? []).map((d: any) => d.nombre));
+      const list = (sc ?? []).map((s: any) => s.departamento);
+      setScopeDeptos(list);
+      setScopeOriginal(list);
+    });
+  }, [open, user]);
 
   const guardar = async () => {
     setWorking(true);
     const { data, error } = await supabase.functions.invoke("admin-update-user", {
       body: { userId: user.id, nombre, activo, roles, newPassword: newPassword || undefined },
     });
-    setWorking(false);
     if (error || (data as any)?.error) {
+      setWorking(false);
       toast.error("No se pudo guardar", { description: (data as any)?.error ?? error?.message });
-    } else {
-      toast.success("Usuario actualizado");
-      setOpen(false);
-      setNewPassword("");
-      onChanged();
+      return;
     }
+
+    // Sincronizar scope solo si tiene rol verificador
+    if (roles.includes("verificador")) {
+      const toAdd = scopeDeptos.filter((d) => !scopeOriginal.includes(d));
+      const toDel = scopeOriginal.filter((d) => !scopeDeptos.includes(d));
+      if (toAdd.length > 0) {
+        await supabase.from("verificador_scope").insert(
+          toAdd.map((d) => ({ user_id: user.id, departamento: d }))
+        );
+      }
+      if (toDel.length > 0) {
+        await supabase.from("verificador_scope")
+          .delete().eq("user_id", user.id).in("departamento", toDel);
+      }
+    } else if (scopeOriginal.length > 0) {
+      // Si dejó de ser verificador, limpiar scope
+      await supabase.from("verificador_scope").delete().eq("user_id", user.id);
+    }
+
+    setWorking(false);
+    toast.success("Usuario actualizado");
+    setOpen(false);
+    setNewPassword("");
+    onChanged();
   };
+
+  const esVerificador = roles.includes("verificador");
 
   return (
     <div className="daiki-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -210,7 +252,7 @@ function UsuarioRow({ user, onChanged }: { user: Usuario; onChanged: () => void 
         <DialogTrigger asChild>
           <Button variant="outline" size="sm">Editar</Button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar usuario</DialogTitle>
             <DialogDescription>{user.email}</DialogDescription>
@@ -236,6 +278,37 @@ function UsuarioRow({ user, onChanged }: { user: Usuario; onChanged: () => void 
                 ))}
               </div>
             </div>
+
+            {esVerificador && (
+              <div className="rounded-md border border-border p-3 space-y-2 bg-muted/30">
+                <div>
+                  <Label className="text-sm font-semibold">Departamentos visibles para este verificador</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Si no marcas ninguno, verá <strong>todos</strong> los departamentos. Marca uno o varios para limitar su acceso.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                  {deptos.length === 0 && <p className="text-xs text-muted-foreground col-span-2">No hay departamentos en el catálogo.</p>}
+                  {deptos.map((d) => (
+                    <label key={d} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={scopeDeptos.includes(d)}
+                        onCheckedChange={(c) =>
+                          setScopeDeptos(c ? [...scopeDeptos, d] : scopeDeptos.filter((x) => x !== d))
+                        }
+                      />
+                      <span>{d}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {scopeDeptos.length === 0
+                    ? "Acceso: todos los departamentos"
+                    : `Acceso restringido a ${scopeDeptos.length} departamento(s)`}
+                </p>
+              </div>
+            )}
+
             <div>
               <Label>Nueva contraseña (opcional)</Label>
               <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Dejar vacío para no cambiar" />

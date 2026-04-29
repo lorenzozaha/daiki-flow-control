@@ -414,6 +414,27 @@ export type Database = {
         }
         Relationships: []
       }
+      verificador_scope: {
+        Row: {
+          created_at: string
+          departamento: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          departamento: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          departamento?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -426,6 +447,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      verificador_puede_ver_depto: {
+        Args: { _depto: string; _user_id: string }
         Returns: boolean
       }
     }
