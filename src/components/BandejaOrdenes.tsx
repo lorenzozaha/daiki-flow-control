@@ -81,7 +81,7 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
 
   const llamarAccion = async (
     orden_id: string,
-    accion: "aprobar" | "rechazar" | "devolver" | "revocar",
+    accion: "aprobar" | "rechazar" | "devolver" | "revocar" | "confirmar",
     comentario?: string,
   ) => {
     setWorking(orden_id + accion);
@@ -95,6 +95,7 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
         accion === "aprobar" ? "Orden aprobada" :
         accion === "rechazar" ? "Orden rechazada" :
         accion === "devolver" ? "Orden devuelta al capturista" :
+        accion === "confirmar" ? "Aprobación confirmada (ya no es revocable)" :
         "Aprobación revocada"
       );
       if (accion === "aprobar" && (data as any)?.warning_pct_alcanzado) {
