@@ -309,8 +309,13 @@ function OrdenCard({
 }
 
 function RevocableCard({
-  orden, working, onRevocar,
-}: { orden: Orden; working: string | null; onRevocar: (c: string) => void }) {
+  orden, working, onConfirmar, onRevocar,
+}: {
+  orden: Orden;
+  working: string | null;
+  onConfirmar: () => void;
+  onRevocar: (c: string) => void;
+}) {
   const expira = orden.revocable_hasta ? new Date(orden.revocable_hasta) : null;
   const horasRestantes = expira ? Math.max(0, Math.round((expira.getTime() - Date.now()) / 3600000)) : 0;
 
@@ -329,7 +334,7 @@ function RevocableCard({
             {fmtMXN(orden.monto)} · Aprobada por verificador
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button asChild variant="ghost" size="sm">
             <Link to={`/ordenes/${orden.id}`}><FileText className="w-4 h-4 mr-1.5" /> Ver</Link>
           </Button>
@@ -343,6 +348,17 @@ function RevocableCard({
             working={working === orden.id + "revocar"}
             onConfirm={(c) => onRevocar(c!)}
           />
+          <Button
+            size="sm"
+            disabled={working === orden.id + "confirmar"}
+            onClick={onConfirmar}
+            className="bg-accent text-accent-foreground hover:bg-accent-hover font-semibold"
+          >
+            {working === orden.id + "confirmar"
+              ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              : <CheckCircle2 className="w-4 h-4 mr-1.5" />}
+            Confirmar aprobación
+          </Button>
         </div>
       </div>
     </div>
