@@ -211,7 +211,7 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
 }
 
 function OrdenCard({
-  orden, bandeja, cfg, working, onAprobar, onRechazar, onDevolver,
+  orden, bandeja, cfg, working, onAprobar, onRechazar, onDevolver, onVoBo,
 }: {
   orden: Orden;
   bandeja: Bandeja;
@@ -220,6 +220,7 @@ function OrdenCard({
   onAprobar: (c?: string) => void;
   onRechazar: (c: string) => void;
   onDevolver: (c: string) => void;
+  onVoBo: (c?: string) => void;
 }) {
   const ruta = cfg ? rutaPorMonto(orden.monto, cfg) : null;
   const firmas = cfg ? firmasRequeridas(orden.monto, cfg) : 1;
