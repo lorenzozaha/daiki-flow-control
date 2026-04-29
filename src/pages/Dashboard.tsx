@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fmtMXN, STATUS_LABEL } from "@/lib/business";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  PieChart, Pie, Cell, Legend, LineChart, Line,
+  PieChart, Pie, Cell,
 } from "recharts";
 import { Loader2, TrendingUp, Clock, CheckCircle2, XCircle, Download } from "lucide-react";
 
