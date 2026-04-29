@@ -28,11 +28,9 @@ export default function Login() {
   // Detectar si es la primera vez (no hay ningún admin)
   useEffect(() => {
     (async () => {
-      const { count } = await supabase
-        .from("user_roles")
-        .select("*", { count: "exact", head: true })
-        .eq("role", "admin");
-      setMode((count ?? 0) === 0 ? "bootstrap" : "login");
+      const { data, error } = await supabase.rpc("bootstrap_needed");
+      // Si hay error o ya hay admin, mostrar login
+      setMode(!error && data === true ? "bootstrap" : "login");
       setChecking(false);
     })();
   }, []);
