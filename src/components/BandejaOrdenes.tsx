@@ -200,6 +200,7 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
                 onAprobar={(c) => llamarAccion(o.id, "aprobar", c)}
                 onRechazar={(c) => llamarAccion(o.id, "rechazar", c)}
                 onDevolver={(c) => llamarAccion(o.id, "devolver", c)}
+                onVoBo={(c) => llamarAccion(o.id, "vobo", c)}
               />
             ))}
           </div>
