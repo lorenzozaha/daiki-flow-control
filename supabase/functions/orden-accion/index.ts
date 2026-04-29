@@ -50,11 +50,11 @@ Deno.serve(async (req) => {
     const admin = createClient(url, serviceKey);
 
     const body = await req.json().catch(() => ({}));
-    const accion = body.accion as Accion;
+    const accion = body.accion as Accion | "confirmar";
     const ordenId = body.orden_id as string;
     const comentario = (body.comentario ?? "").toString().trim() || null;
 
-    if (!ordenId || !["aprobar", "rechazar", "devolver", "revocar"].includes(accion)) {
+    if (!ordenId || !["aprobar", "rechazar", "devolver", "revocar", "confirmar"].includes(accion)) {
       return json({ error: "Parámetros inválidos" }, 400);
     }
     if ((accion === "rechazar" || accion === "devolver" || accion === "revocar") && !comentario) {
