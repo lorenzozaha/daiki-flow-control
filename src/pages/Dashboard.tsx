@@ -39,15 +39,27 @@ interface Orden {
 const COLORS = ["#47D7AC", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316"];
 
 export default function Dashboard() {
+  const { user, hasRole } = useAuth();
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [ordenesPrev, setOrdenesPrev] = useState<Orden[]>([]);
   const [perfiles, setPerfiles] = useState<Record<string, string>>({});
+  const [scopeDeptos, setScopeDeptos] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   const today = new Date();
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const [desde, setDesde] = useState<Date>(firstOfMonth);
   const [hasta, setHasta] = useState<Date>(today);
+
+  // Scope del verificador (solo informativo: el filtrado real lo hace RLS)
+  useEffect(() => {
+    if (!user || !hasRole("verificador") || hasRole("admin") || hasRole("autorizador")) {
+      setScopeDeptos(null);
+      return;
+    }
+    supabase.from("verificador_scope").select("departamento").eq("user_id", user.id)
+      .then(({ data }) => setScopeDeptos((data ?? []).map((r: any) => r.departamento)));
+  }, [user, hasRole]);
 
   useEffect(() => {
     (async () => {
