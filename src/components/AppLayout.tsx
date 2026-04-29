@@ -32,7 +32,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { to: "/mis-ordenes", label: "Mis órdenes", show: hasRole("capturista") || hasRole("admin") },
     { to: "/bandeja/revision", label: "Bandeja de revisión", show: hasRole("verificador") || hasRole("admin") },
     { to: "/bandeja/autorizacion", label: "Bandeja de autorización", show: hasRole("autorizador") || hasRole("admin") },
-    { to: "/dashboard", label: "Dashboard", show: hasRole("verificador") || hasRole("autorizador") || hasRole("admin") },
+    { to: "/dashboard", label: "Dashboard", show: hasRole("autorizador") || hasRole("admin") },
     { to: "/admin", label: "Administración", show: hasRole("admin") },
   ].filter((i) => i.show);
 
