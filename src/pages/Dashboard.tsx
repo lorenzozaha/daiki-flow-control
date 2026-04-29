@@ -194,19 +194,6 @@ export default function Dashboard() {
           )}
         </ChartCard>
 
-        <ChartCard title="Tendencia diaria de aprobación">
-          {tendencia.length === 0 ? <Empty /> : (
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={tendencia} margin={{ left: 0, right: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: any) => fmtMXN(Number(v))} />
-                <Line type="monotone" dataKey="monto" stroke="hsl(var(--accent))" strokeWidth={2.5} dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </ChartCard>
       </div>
     </div>
   );
