@@ -41,7 +41,8 @@ interface Orden {
 }
 
 export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
-  const { profile } = useAuth();
+  const { profile, hasRole } = useAuth();
+  const esContador = hasRole("contador") && !hasRole("verificador") && !hasRole("admin");
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [revocables, setRevocables] = useState<Orden[]>([]);
   const [cfg, setCfg] = useState<ConfigLimites | null>(null);
