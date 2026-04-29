@@ -103,17 +103,6 @@ export default function Dashboard() {
     return Array.from(map.entries()).map(([k, v]) => ({ name: STATUS_LABEL[k] ?? k, value: v }));
   }, [ordenes]);
 
-  const tendencia = useMemo(() => {
-    const map = new Map<string, number>();
-    ordenes.filter(o => o.status === "aprobada" && o.autorizado_at).forEach((o) => {
-      const d = new Date(o.autorizado_at!);
-      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      map.set(k, (map.get(k) ?? 0) + Number(o.monto));
-    });
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([fecha, monto]) => ({ fecha: fecha.slice(5), monto }));
-  }, [ordenes]);
 
   const exportarCsv = () => {
     const headers = ["folio", "fecha", "concepto", "proveedor", "departamento", "categoria", "monto", "status"];
