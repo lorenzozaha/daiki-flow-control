@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "capturista" | "verificador" | "autorizador" | "admin";
+export type AppRole = "capturista" | "verificador" | "contador" | "autorizador" | "admin";
 
 export interface Profile {
   id: string;
