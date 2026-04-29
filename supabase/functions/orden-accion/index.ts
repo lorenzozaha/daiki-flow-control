@@ -88,6 +88,42 @@ Deno.serve(async (req) => {
     const esAutorizador = roles.includes("autorizador");
     const esAdmin = roles.includes("admin");
 
+    // ============== VoBo del verificador (para órdenes que escalan a autorizador) ==============
+    if (accion === "vobo") {
+      if (!(esVerificador || esAdmin)) {
+        return json({ error: "Solo un verificador puede dar VoBo" }, 403);
+      }
+      if (orden.status !== "en_revision") {
+        return json({ error: "La orden no está en revisión" }, 400);
+      }
+      // Solo aplica a montos que escalan al autorizador
+      const aprobMaxV = Number(cfg.verificador_auto_aprueba_max);
+      const alertaMaxV = Number(cfg.verificador_alerta_activa_max);
+      if (monto <= alertaMaxV) {
+        return json({ error: "Esta orden está dentro de tu autoridad: aprueba directamente" }, 400);
+      }
+      if (orden.vobo_verificador_id) {
+        return json({ error: "Esta orden ya tiene VoBo del verificador" }, 400);
+      }
+      void aprobMaxV;
+
+      const ahoraIso = new Date().toISOString();
+      const { error: updErr } = await admin.from("ordenes_pago").update({
+        status: "en_autorizacion",
+        vobo_verificador_id: uid,
+        vobo_verificador_nombre: profile.nombre,
+        vobo_at: ahoraIso,
+        vobo_comentario: comentario,
+      }).eq("id", ordenId);
+      if (updErr) throw updErr;
+
+      await admin.from("orden_historial").insert({
+        orden_id: ordenId, usuario_id: uid, usuario_nombre: profile.nombre,
+        accion: "VoBo del verificador (escalada al autorizador)", comentario,
+      });
+      return json({ ok: true, status: "en_autorizacion", vobo: true });
+    }
+
     // ============== CONFIRMAR (cierra ventana de revocación) ==============
     if (accion === "confirmar") {
       if (!(esAutorizador || esAdmin)) {
