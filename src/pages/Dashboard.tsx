@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMXN, STATUS_LABEL } from "@/lib/business";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell,
@@ -19,46 +26,61 @@ interface Orden {
   created_at: string;
   autorizado_at: string | null;
   autorizado_por_rol: string | null;
+  solicitante_id: string;
+  autorizado_por_id: string | null;
+  vobo_verificador_id: string | null;
+  vobo_verificador_nombre: string | null;
 }
 
 const COLORS = ["#47D7AC", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316"];
 
-function buildMesesOpts(n = 12): { value: string; label: string }[] {
-  const opts: { value: string; label: string }[] = [];
-  const now = new Date();
-  for (let i = 0; i < n; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const label = d.toLocaleDateString("es-MX", { month: "long", year: "numeric" });
-    opts.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
-  }
-  return opts;
-}
-
 export default function Dashboard() {
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
+  const [perfiles, setPerfiles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const mesesOpts = useMemo(() => buildMesesOpts(12), []);
-  const [mes, setMes] = useState<string>(mesesOpts[0].value);
+
+  // Default: primer día del mes actual al día actual
+  const today = new Date();
+  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const [desde, setDesde] = useState<Date>(firstOfMonth);
+  const [hasta, setHasta] = useState<Date>(today);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [yStr, mStr] = mes.split("-");
-      const y = Number(yStr);
-      const m = Number(mStr);
-      const desde = new Date(y, m - 1, 1);
-      const hasta = new Date(y, m, 1);
+      const desdeISO = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate(), 0, 0, 0).toISOString();
+      const hastaISO = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate(), 23, 59, 59).toISOString();
+
       const { data } = await supabase
         .from("ordenes_pago")
-        .select("id, folio, monto, concepto, proveedor_nombre, departamento, categoria_gasto, status, created_at, autorizado_at, autorizado_por_rol")
-        .gte("created_at", desde.toISOString())
-        .lt("created_at", hasta.toISOString())
+        .select("id, folio, monto, concepto, proveedor_nombre, departamento, categoria_gasto, status, created_at, autorizado_at, autorizado_por_rol, solicitante_id, autorizado_por_id, vobo_verificador_id, vobo_verificador_nombre")
+        .gte("created_at", desdeISO)
+        .lte("created_at", hastaISO)
         .order("created_at", { ascending: false });
-      setOrdenes((data ?? []) as Orden[]);
+
+      const list = (data ?? []) as Orden[];
+      setOrdenes(list);
+
+      // Cargar nombres de perfiles involucrados
+      const ids = new Set<string>();
+      list.forEach((o) => {
+        if (o.solicitante_id) ids.add(o.solicitante_id);
+        if (o.autorizado_por_id) ids.add(o.autorizado_por_id);
+      });
+      if (ids.size > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, nombre, email")
+          .in("id", Array.from(ids));
+        const map: Record<string, string> = {};
+        (profs ?? []).forEach((p: any) => { map[p.id] = p.nombre || p.email || ""; });
+        setPerfiles(map);
+      } else {
+        setPerfiles({});
+      }
       setLoading(false);
     })();
-  }, [mes]);
+  }, [desde, hasta]);
 
   const kpis = useMemo(() => {
     const aprobadas = ordenes.filter((o) => o.status === "aprobada");
@@ -103,20 +125,31 @@ export default function Dashboard() {
     return Array.from(map.entries()).map(([k, v]) => ({ name: STATUS_LABEL[k] ?? k, value: v }));
   }, [ordenes]);
 
-
   const exportarCsv = () => {
-    const headers = ["folio", "fecha", "concepto", "proveedor", "departamento", "categoria", "monto", "status"];
-    const rows = ordenes.map((o) => [
-      o.folio, o.created_at, o.concepto, o.proveedor_nombre ?? "", o.departamento,
-      o.categoria_gasto, o.monto, o.status,
-    ]);
+    const headers = [
+      "folio", "fecha", "concepto", "proveedor", "departamento", "categoria",
+      "monto", "status", "capturista", "verificador", "autorizador", "autorizado_at",
+    ];
+    const rows = ordenes.map((o) => {
+      const capturista = perfiles[o.solicitante_id] ?? "";
+      const verificador = o.vobo_verificador_nombre
+        ?? (o.autorizado_por_rol === "verificador" && o.autorizado_por_id ? (perfiles[o.autorizado_por_id] ?? "") : "");
+      const autorizador = o.autorizado_por_rol === "autorizador" && o.autorizado_por_id
+        ? (perfiles[o.autorizado_por_id] ?? "") : "";
+      return [
+        o.folio, o.created_at, o.concepto, o.proveedor_nombre ?? "", o.departamento,
+        o.categoria_gasto, o.monto, o.status, capturista, verificador, autorizador,
+        o.autorizado_at ?? "",
+      ];
+    });
     const csv = [headers, ...rows].map((r) =>
       r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")
     ).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `ordenes-${mes}.csv`; a.click();
+    const fname = `ordenes_${format(desde, "yyyy-MM-dd")}_a_${format(hasta, "yyyy-MM-dd")}.csv`;
+    a.href = url; a.download = fname; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -129,19 +162,12 @@ export default function Dashboard() {
           <h1 className="text-2xl font-extrabold">Dashboard ejecutivo</h1>
           <p className="text-sm text-muted-foreground">Resumen del flujo de autorizaciones</p>
         </div>
-        <div className="flex gap-2">
-          <select
-            value={mes}
-            onChange={(e) => setMes(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            {mesesOpts.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-          <button onClick={exportarCsv} className="h-10 px-4 rounded-md border border-border text-sm font-medium hover:bg-secondary inline-flex items-center gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <DateField label="Desde" date={desde} onChange={(d) => d && setDesde(d)} maxDate={hasta} />
+          <DateField label="Hasta" date={hasta} onChange={(d) => d && setHasta(d)} minDate={desde} />
+          <Button onClick={exportarCsv} variant="outline" className="h-10 gap-2">
             <Download className="w-4 h-4" /> CSV
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -193,9 +219,41 @@ export default function Dashboard() {
             </ResponsiveContainer>
           )}
         </ChartCard>
-
       </div>
     </div>
+  );
+}
+
+function DateField({
+  label, date, onChange, minDate, maxDate,
+}: {
+  label: string;
+  date: Date;
+  onChange: (d?: Date) => void;
+  minDate?: Date;
+  maxDate?: Date;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className={cn("h-10 justify-start text-left font-normal gap-2")}>
+          <CalendarIcon className="w-4 h-4 opacity-60" />
+          <span className="text-xs text-muted-foreground">{label}:</span>
+          {format(date, "dd MMM yyyy", { locale: es })}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={onChange}
+          disabled={(d) => (minDate ? d < new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate()) : false) || (maxDate ? d > new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate()) : false)}
+          initialFocus
+          locale={es}
+          className={cn("p-3 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }
 
