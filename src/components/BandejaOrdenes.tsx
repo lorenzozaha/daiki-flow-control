@@ -251,6 +251,11 @@ function OrdenCard({
                 Requiere 2 firmas
               </span>
             )}
+            {bandeja === "autorizador" && orden.vobo_verificador_id && (
+              <span className="daiki-badge bg-accent/15 text-accent border border-accent/30">
+                ✓ VoBo {orden.vobo_verificador_nombre ?? "verificador"}
+              </span>
+            )}
           </div>
           <p className="font-semibold truncate">{orden.concepto}</p>
           <p className="text-xs text-muted-foreground truncate">
