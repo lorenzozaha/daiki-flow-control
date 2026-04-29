@@ -35,6 +35,9 @@ interface Orden {
   autorizado_por_rol: string | null;
   autorizado_at: string | null;
   revocable_hasta: string | null;
+  vobo_verificador_id: string | null;
+  vobo_verificador_nombre: string | null;
+  vobo_at: string | null;
 }
 
 export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
