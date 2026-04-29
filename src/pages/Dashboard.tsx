@@ -333,7 +333,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {scopeDeptos && scopeDeptos.length > 0 && (
+        <div className="rounded-md border border-info/30 bg-info/10 px-4 py-2.5 text-sm">
+          <span className="font-semibold text-info">Vista filtrada: </span>
+          solo se muestran órdenes de los departamentos {scopeDeptos.map((d) => `"${d}"`).join(", ")}.
+        </div>
+      )}
+
         <Kpi icon={<TrendingUp className="w-5 h-5" />} label="Total aprobado" value={fmtMXN(kpis.totalAprobado)} color="text-accent" />
         <Kpi icon={<Clock className="w-5 h-5" />} label="Pendiente" value={fmtMXN(kpis.totalPendiente)} color="text-info" />
         <Kpi icon={<CheckCircle2 className="w-5 h-5" />} label="Órdenes aprobadas" value={String(kpis.aprobadas)} color="text-accent" />
