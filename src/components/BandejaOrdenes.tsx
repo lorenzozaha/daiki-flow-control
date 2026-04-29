@@ -129,13 +129,15 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
           {bandeja === "verificador" ? "Bandeja de revisión" : "Bandeja de autorización"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {bandeja === "verificador"
+          {esContador
+            ? "Revisa las órdenes y dales VoBo para que pasen al autorizador. Si necesitan corrección, devuélvelas al capturista."
+            : bandeja === "verificador"
             ? "Revisa y aprueba órdenes dentro de tu autoridad. Las órdenes mayores se escalan al autorizador."
             : "Autoriza órdenes que requieren tu firma y revoca aprobaciones de verificador dentro de las 24 h."}
         </p>
       </div>
 
-      {bandeja === "verificador" && cfg && (
+      {bandeja === "verificador" && !esContador && cfg && (
         <div className="daiki-card p-4 md:p-5">
           <div className="flex items-center justify-between mb-2">
             <div>
