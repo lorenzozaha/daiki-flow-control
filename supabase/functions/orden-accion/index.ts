@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
 
     // ============== DEVOLVER ==============
     if (accion === "devolver") {
-      if (!(esVerificador || esAutorizador || esAdmin)) {
+      if (!(esVerificador || esContador || esAutorizador || esAdmin)) {
         return json({ error: "No tienes permiso para devolver" }, 403);
       }
       if (!["en_revision", "en_autorizacion"].includes(orden.status)) {
