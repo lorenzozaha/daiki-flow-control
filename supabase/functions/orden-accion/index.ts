@@ -50,11 +50,11 @@ Deno.serve(async (req) => {
     const admin = createClient(url, serviceKey);
 
     const body = await req.json().catch(() => ({}));
-    const accion = body.accion as Accion;
+    const accion = body.accion as Accion | "confirmar";
     const ordenId = body.orden_id as string;
     const comentario = (body.comentario ?? "").toString().trim() || null;
 
-    if (!ordenId || !["aprobar", "rechazar", "devolver", "revocar"].includes(accion)) {
+    if (!ordenId || !["aprobar", "rechazar", "devolver", "revocar", "confirmar"].includes(accion)) {
       return json({ error: "Parámetros inválidos" }, 400);
     }
     if ((accion === "rechazar" || accion === "devolver" || accion === "revocar") && !comentario) {
@@ -87,6 +87,28 @@ Deno.serve(async (req) => {
     const esVerificador = roles.includes("verificador");
     const esAutorizador = roles.includes("autorizador");
     const esAdmin = roles.includes("admin");
+
+    // ============== CONFIRMAR (cierra ventana de revocación) ==============
+    if (accion === "confirmar") {
+      if (!(esAutorizador || esAdmin)) {
+        return json({ error: "Solo un autorizador puede confirmar" }, 403);
+      }
+      if (orden.status !== "aprobada" || orden.autorizado_por_rol !== "verificador") {
+        return json({ error: "Solo se confirman aprobaciones de verificador pendientes" }, 400);
+      }
+      if (orden.revocada) return json({ error: "Esta orden fue revocada" }, 400);
+      if (!orden.revocable_hasta) return json({ error: "Esta orden ya fue confirmada" }, 400);
+
+      const { error: updErr } = await admin.from("ordenes_pago")
+        .update({ revocable_hasta: null }).eq("id", ordenId);
+      if (updErr) throw updErr;
+
+      await admin.from("orden_historial").insert({
+        orden_id: ordenId, usuario_id: uid, usuario_nombre: profile.nombre,
+        accion: "Aprobación confirmada por autorizador (ventana cerrada)", comentario,
+      });
+      return json({ ok: true, status: "aprobada", confirmada: true });
+    }
 
     // ============== REVOCAR ==============
     if (accion === "revocar") {

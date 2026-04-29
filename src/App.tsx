@@ -16,6 +16,8 @@ import OrdenDetalle from "./pages/OrdenDetalle";
 import Placeholder from "./pages/Placeholder";
 import BandejaRevision from "./pages/BandejaRevision";
 import BandejaAutorizacion from "./pages/BandejaAutorizacion";
+import Dashboard from "./pages/Dashboard";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,12 +61,12 @@ const App = () => (
             } />
             <Route path="/dashboard" element={
               <ProtectedRoute roles={["verificador", "autorizador", "admin"]}>
-                <AppLayout><Placeholder titulo="Dashboard ejecutivo" descripcion="Disponible en la próxima fase: KPIs, gasto por categoría y departamento, exportación a CSV." /></AppLayout>
+                <AppLayout><Dashboard /></AppLayout>
               </ProtectedRoute>
             } />
             <Route path="/admin" element={
               <ProtectedRoute roles={["admin"]}>
-                <AppLayout><Placeholder titulo="Panel de administración" descripcion="Disponible en la próxima fase: invitar usuarios, configurar límites de autorización, gestionar empresas y catálogos." /></AppLayout>
+                <AppLayout><Admin /></AppLayout>
               </ProtectedRoute>
             } />
             <Route path="/perfil" element={
