@@ -6,6 +6,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { fmtMXN, STATUS_LABEL } from "@/lib/business";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
