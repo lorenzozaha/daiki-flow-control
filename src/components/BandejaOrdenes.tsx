@@ -270,9 +270,14 @@ function OrdenCard({
         </div>
       </div>
 
-      {!puedeAprobar && bandeja === "verificador" && (
+      {!puedeAprobar && bandeja === "verificador" && !orden.vobo_verificador_id && (
         <div className="text-xs text-muted-foreground bg-secondary px-3 py-2 rounded-md mb-3">
-          Este monto excede tu autoridad y debe ser aprobado por un autorizador.
+          Este monto excede tu autoridad. Da <strong>VoBo</strong> para escalarla al autorizador con tu visto bueno.
+        </div>
+      )}
+      {!puedeAprobar && bandeja === "verificador" && orden.vobo_verificador_id && (
+        <div className="text-xs bg-accent/10 text-accent border border-accent/30 px-3 py-2 rounded-md mb-3">
+          ✓ Ya diste VoBo a esta orden. Esperando al autorizador.
         </div>
       )}
 
@@ -301,6 +306,17 @@ function OrdenCard({
           working={working === orden.id + "rechazar"}
           onConfirm={(c) => onRechazar(c!)}
         />
+        {bandeja === "verificador" && !puedeAprobar && !orden.vobo_verificador_id && (
+          <ActionDialog
+            title="Dar VoBo al autorizador"
+            description="Confirma que ya revisaste esta orden. Quedará marcada con tu visto bueno y pasará al autorizador."
+            buttonLabel="Dar VoBo"
+            variant="outline"
+            icon={<CheckCircle2 className="w-4 h-4 mr-1.5" />}
+            working={working === orden.id + "vobo"}
+            onConfirm={(c) => onVoBo(c)}
+          />
+        )}
         {puedeAprobar && (
           <Button
             size="sm"
