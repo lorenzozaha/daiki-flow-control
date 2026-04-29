@@ -131,13 +131,13 @@ export default function Dashboard() {
         </div>
         <div className="flex gap-2">
           <select
-            value={rango}
-            onChange={(e) => setRango(e.target.value as any)}
+            value={mes}
+            onChange={(e) => setMes(e.target.value)}
             className="h-10 rounded-md border border-input bg-background px-3 text-sm"
           >
-            <option value="30">Últimos 30 días</option>
-            <option value="90">Últimos 90 días</option>
-            <option value="365">Último año</option>
+            {mesesOpts.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
           <button onClick={exportarCsv} className="h-10 px-4 rounded-md border border-border text-sm font-medium hover:bg-secondary inline-flex items-center gap-2">
             <Download className="w-4 h-4" /> CSV
