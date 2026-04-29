@@ -85,13 +85,21 @@ Deno.serve(async (req) => {
 
     const monto = Number(orden.monto);
     const esVerificador = roles.includes("verificador");
+    const esContador = roles.includes("contador");
     const esAutorizador = roles.includes("autorizador");
     const esAdmin = roles.includes("admin");
 
-    // ============== VoBo del verificador (para órdenes que escalan a autorizador) ==============
+    // El contador NUNCA puede aprobar, rechazar ni revocar — solo VoBo y devolver.
+    if (esContador && !esVerificador && !esAutorizador && !esAdmin) {
+      if (accion === "aprobar" || accion === "rechazar" || accion === "revocar" || accion === "confirmar") {
+        return json({ error: "El rol de contador no puede aprobar, rechazar ni revocar órdenes" }, 403);
+      }
+    }
+
+    // ============== VoBo del verificador o contador (para órdenes que escalan a autorizador) ==============
     if (accion === "vobo") {
-      if (!(esVerificador || esAdmin)) {
-        return json({ error: "Solo un verificador puede dar VoBo" }, 403);
+      if (!(esVerificador || esContador || esAdmin)) {
+        return json({ error: "Solo un verificador o contador puede dar VoBo" }, 403);
       }
       if (orden.status !== "en_revision") {
         return json({ error: "La orden no está en revisión" }, 400);
