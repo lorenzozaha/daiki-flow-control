@@ -35,6 +35,9 @@ interface Orden {
   autorizado_por_rol: string | null;
   autorizado_at: string | null;
   revocable_hasta: string | null;
+  vobo_verificador_id: string | null;
+  vobo_verificador_nombre: string | null;
+  vobo_at: string | null;
 }
 
 export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
@@ -81,7 +84,7 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
 
   const llamarAccion = async (
     orden_id: string,
-    accion: "aprobar" | "rechazar" | "devolver" | "revocar" | "confirmar",
+    accion: "aprobar" | "rechazar" | "devolver" | "revocar" | "confirmar" | "vobo",
     comentario?: string,
   ) => {
     setWorking(orden_id + accion);
@@ -96,6 +99,7 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
         accion === "rechazar" ? "Orden rechazada" :
         accion === "devolver" ? "Orden devuelta al capturista" :
         accion === "confirmar" ? "Aprobación confirmada (ya no es revocable)" :
+        accion === "vobo" ? "VoBo registrado y escalado al autorizador" :
         "Aprobación revocada"
       );
       if (accion === "aprobar" && (data as any)?.warning_pct_alcanzado) {
@@ -196,6 +200,7 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
                 onAprobar={(c) => llamarAccion(o.id, "aprobar", c)}
                 onRechazar={(c) => llamarAccion(o.id, "rechazar", c)}
                 onDevolver={(c) => llamarAccion(o.id, "devolver", c)}
+                onVoBo={(c) => llamarAccion(o.id, "vobo", c)}
               />
             ))}
           </div>
@@ -206,7 +211,7 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
 }
 
 function OrdenCard({
-  orden, bandeja, cfg, working, onAprobar, onRechazar, onDevolver,
+  orden, bandeja, cfg, working, onAprobar, onRechazar, onDevolver, onVoBo,
 }: {
   orden: Orden;
   bandeja: Bandeja;
@@ -215,6 +220,7 @@ function OrdenCard({
   onAprobar: (c?: string) => void;
   onRechazar: (c: string) => void;
   onDevolver: (c: string) => void;
+  onVoBo: (c?: string) => void;
 }) {
   const ruta = cfg ? rutaPorMonto(orden.monto, cfg) : null;
   const firmas = cfg ? firmasRequeridas(orden.monto, cfg) : 1;
@@ -245,6 +251,11 @@ function OrdenCard({
                 Requiere 2 firmas
               </span>
             )}
+            {bandeja === "autorizador" && orden.vobo_verificador_id && (
+              <span className="daiki-badge bg-accent/15 text-accent border border-accent/30">
+                ✓ VoBo {orden.vobo_verificador_nombre ?? "verificador"}
+              </span>
+            )}
           </div>
           <p className="font-semibold truncate">{orden.concepto}</p>
           <p className="text-xs text-muted-foreground truncate">
@@ -259,9 +270,14 @@ function OrdenCard({
         </div>
       </div>
 
-      {!puedeAprobar && bandeja === "verificador" && (
+      {!puedeAprobar && bandeja === "verificador" && !orden.vobo_verificador_id && (
         <div className="text-xs text-muted-foreground bg-secondary px-3 py-2 rounded-md mb-3">
-          Este monto excede tu autoridad y debe ser aprobado por un autorizador.
+          Este monto excede tu autoridad. Da <strong>VoBo</strong> para escalarla al autorizador con tu visto bueno.
+        </div>
+      )}
+      {!puedeAprobar && bandeja === "verificador" && orden.vobo_verificador_id && (
+        <div className="text-xs bg-accent/10 text-accent border border-accent/30 px-3 py-2 rounded-md mb-3">
+          ✓ Ya diste VoBo a esta orden. Esperando al autorizador.
         </div>
       )}
 
@@ -290,6 +306,17 @@ function OrdenCard({
           working={working === orden.id + "rechazar"}
           onConfirm={(c) => onRechazar(c!)}
         />
+        {bandeja === "verificador" && !puedeAprobar && !orden.vobo_verificador_id && (
+          <ActionDialog
+            title="Dar VoBo al autorizador"
+            description="Confirma que ya revisaste esta orden. Quedará marcada con tu visto bueno y pasará al autorizador."
+            buttonLabel="Dar VoBo"
+            variant="outline"
+            icon={<CheckCircle2 className="w-4 h-4 mr-1.5" />}
+            working={working === orden.id + "vobo"}
+            onConfirm={(c) => onVoBo(c)}
+          />
+        )}
         {puedeAprobar && (
           <Button
             size="sm"

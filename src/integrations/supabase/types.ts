@@ -267,6 +267,10 @@ export type Database = {
           solicitante_id: string
           status: Database["public"]["Enums"]["orden_status"]
           updated_at: string
+          vobo_at: string | null
+          vobo_comentario: string | null
+          vobo_verificador_id: string | null
+          vobo_verificador_nombre: string | null
         }
         Insert: {
           autorizado_at?: string | null
@@ -298,6 +302,10 @@ export type Database = {
           solicitante_id: string
           status?: Database["public"]["Enums"]["orden_status"]
           updated_at?: string
+          vobo_at?: string | null
+          vobo_comentario?: string | null
+          vobo_verificador_id?: string | null
+          vobo_verificador_nombre?: string | null
         }
         Update: {
           autorizado_at?: string | null
@@ -329,6 +337,10 @@ export type Database = {
           solicitante_id?: string
           status?: Database["public"]["Enums"]["orden_status"]
           updated_at?: string
+          vobo_at?: string | null
+          vobo_comentario?: string | null
+          vobo_verificador_id?: string | null
+          vobo_verificador_nombre?: string | null
         }
         Relationships: [
           {

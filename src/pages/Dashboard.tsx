@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fmtMXN, STATUS_LABEL } from "@/lib/business";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  PieChart, Pie, Cell, Legend, LineChart, Line,
+  PieChart, Pie, Cell,
 } from "recharts";
 import { Loader2, TrendingUp, Clock, CheckCircle2, XCircle, Download } from "lucide-react";
 
@@ -23,25 +23,42 @@ interface Orden {
 
 const COLORS = ["#47D7AC", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316"];
 
+function buildMesesOpts(n = 12): { value: string; label: string }[] {
+  const opts: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < n; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleDateString("es-MX", { month: "long", year: "numeric" });
+    opts.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
+  }
+  return opts;
+}
+
 export default function Dashboard() {
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [loading, setLoading] = useState(true);
-  const [rango, setRango] = useState<"30" | "90" | "365">("30");
+  const mesesOpts = useMemo(() => buildMesesOpts(12), []);
+  const [mes, setMes] = useState<string>(mesesOpts[0].value);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const desde = new Date();
-      desde.setDate(desde.getDate() - Number(rango));
+      const [yStr, mStr] = mes.split("-");
+      const y = Number(yStr);
+      const m = Number(mStr);
+      const desde = new Date(y, m - 1, 1);
+      const hasta = new Date(y, m, 1);
       const { data } = await supabase
         .from("ordenes_pago")
         .select("id, folio, monto, concepto, proveedor_nombre, departamento, categoria_gasto, status, created_at, autorizado_at, autorizado_por_rol")
         .gte("created_at", desde.toISOString())
+        .lt("created_at", hasta.toISOString())
         .order("created_at", { ascending: false });
       setOrdenes((data ?? []) as Orden[]);
       setLoading(false);
     })();
-  }, [rango]);
+  }, [mes]);
 
   const kpis = useMemo(() => {
     const aprobadas = ordenes.filter((o) => o.status === "aprobada");
@@ -86,17 +103,6 @@ export default function Dashboard() {
     return Array.from(map.entries()).map(([k, v]) => ({ name: STATUS_LABEL[k] ?? k, value: v }));
   }, [ordenes]);
 
-  const tendencia = useMemo(() => {
-    const map = new Map<string, number>();
-    ordenes.filter(o => o.status === "aprobada" && o.autorizado_at).forEach((o) => {
-      const d = new Date(o.autorizado_at!);
-      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      map.set(k, (map.get(k) ?? 0) + Number(o.monto));
-    });
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([fecha, monto]) => ({ fecha: fecha.slice(5), monto }));
-  }, [ordenes]);
 
   const exportarCsv = () => {
     const headers = ["folio", "fecha", "concepto", "proveedor", "departamento", "categoria", "monto", "status"];
@@ -110,7 +116,7 @@ export default function Dashboard() {
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `ordenes-${rango}d.csv`; a.click();
+    a.href = url; a.download = `ordenes-${mes}.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -125,13 +131,13 @@ export default function Dashboard() {
         </div>
         <div className="flex gap-2">
           <select
-            value={rango}
-            onChange={(e) => setRango(e.target.value as any)}
+            value={mes}
+            onChange={(e) => setMes(e.target.value)}
             className="h-10 rounded-md border border-input bg-background px-3 text-sm"
           >
-            <option value="30">Últimos 30 días</option>
-            <option value="90">Últimos 90 días</option>
-            <option value="365">Último año</option>
+            {mesesOpts.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
           <button onClick={exportarCsv} className="h-10 px-4 rounded-md border border-border text-sm font-medium hover:bg-secondary inline-flex items-center gap-2">
             <Download className="w-4 h-4" /> CSV
@@ -188,19 +194,6 @@ export default function Dashboard() {
           )}
         </ChartCard>
 
-        <ChartCard title="Tendencia diaria de aprobación">
-          {tendencia.length === 0 ? <Empty /> : (
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={tendencia} margin={{ left: 0, right: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: any) => fmtMXN(Number(v))} />
-                <Line type="monotone" dataKey="monto" stroke="hsl(var(--accent))" strokeWidth={2.5} dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </ChartCard>
       </div>
     </div>
   );
