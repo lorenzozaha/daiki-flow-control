@@ -407,6 +407,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bootstrap_needed: { Args: never; Returns: boolean }
       current_user_empresa: { Args: never; Returns: string }
       has_role: {
         Args: {
