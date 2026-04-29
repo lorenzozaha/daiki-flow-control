@@ -215,12 +215,13 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
 }
 
 function OrdenCard({
-  orden, bandeja, cfg, working, onAprobar, onRechazar, onDevolver, onVoBo,
+  orden, bandeja, cfg, working, esContador, onAprobar, onRechazar, onDevolver, onVoBo,
 }: {
   orden: Orden;
   bandeja: Bandeja;
   cfg: ConfigLimites | null;
   working: string | null;
+  esContador?: boolean;
   onAprobar: (c?: string) => void;
   onRechazar: (c: string) => void;
   onDevolver: (c: string) => void;
@@ -231,7 +232,12 @@ function OrdenCard({
 
   // En bandeja del verificador, marcar las que NO puede aprobar (escalan)
   const verificadorPuede = ruta === "verificador_silenciosa" || ruta === "verificador_alerta";
-  const puedeAprobar = bandeja === "verificador" ? verificadorPuede : true;
+  // El contador NUNCA puede aprobar — siempre da VoBo (o devuelve)
+  const puedeAprobar = esContador ? false : (bandeja === "verificador" ? verificadorPuede : true);
+  // El contador puede dar VoBo a cualquier orden en revisión, sin importar el monto
+  const puedeVoBo = esContador
+    ? (bandeja === "verificador" && !orden.vobo_verificador_id)
+    : (bandeja === "verificador" && !verificadorPuede && !orden.vobo_verificador_id);
 
   return (
     <div className="daiki-card p-4 md:p-5">
