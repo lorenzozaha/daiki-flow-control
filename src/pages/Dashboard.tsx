@@ -23,25 +23,42 @@ interface Orden {
 
 const COLORS = ["#47D7AC", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316"];
 
+function buildMesesOpts(n = 12): { value: string; label: string }[] {
+  const opts: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < n; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleDateString("es-MX", { month: "long", year: "numeric" });
+    opts.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
+  }
+  return opts;
+}
+
 export default function Dashboard() {
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [loading, setLoading] = useState(true);
-  const [rango, setRango] = useState<"30" | "90" | "365">("30");
+  const mesesOpts = useMemo(() => buildMesesOpts(12), []);
+  const [mes, setMes] = useState<string>(mesesOpts[0].value);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const desde = new Date();
-      desde.setDate(desde.getDate() - Number(rango));
+      const [yStr, mStr] = mes.split("-");
+      const y = Number(yStr);
+      const m = Number(mStr);
+      const desde = new Date(y, m - 1, 1);
+      const hasta = new Date(y, m, 1);
       const { data } = await supabase
         .from("ordenes_pago")
         .select("id, folio, monto, concepto, proveedor_nombre, departamento, categoria_gasto, status, created_at, autorizado_at, autorizado_por_rol")
         .gte("created_at", desde.toISOString())
+        .lt("created_at", hasta.toISOString())
         .order("created_at", { ascending: false });
       setOrdenes((data ?? []) as Orden[]);
       setLoading(false);
     })();
-  }, [rango]);
+  }, [mes]);
 
   const kpis = useMemo(() => {
     const aprobadas = ordenes.filter((o) => o.status === "aprobada");
