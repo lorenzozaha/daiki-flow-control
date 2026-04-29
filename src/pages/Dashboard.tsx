@@ -340,6 +340,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Kpi icon={<TrendingUp className="w-5 h-5" />} label="Total aprobado" value={fmtMXN(kpis.totalAprobado)} color="text-accent" />
         <Kpi icon={<Clock className="w-5 h-5" />} label="Pendiente" value={fmtMXN(kpis.totalPendiente)} color="text-info" />
         <Kpi icon={<CheckCircle2 className="w-5 h-5" />} label="Órdenes aprobadas" value={String(kpis.aprobadas)} color="text-accent" />
