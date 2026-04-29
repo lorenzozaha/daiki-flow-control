@@ -455,7 +455,12 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "capturista" | "verificador" | "autorizador" | "admin"
+      app_role:
+        | "capturista"
+        | "verificador"
+        | "autorizador"
+        | "admin"
+        | "contador"
       autorizado_por_rol_t: "verificador" | "autorizador"
       orden_frecuencia: "mensual" | "quincenal" | "semanal"
       orden_prioridad: "normal" | "urgente"
@@ -593,7 +598,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["capturista", "verificador", "autorizador", "admin"],
+      app_role: [
+        "capturista",
+        "verificador",
+        "autorizador",
+        "admin",
+        "contador",
+      ],
       autorizado_por_rol_t: ["verificador", "autorizador"],
       orden_frecuencia: ["mensual", "quincenal", "semanal"],
       orden_prioridad: ["normal", "urgente"],

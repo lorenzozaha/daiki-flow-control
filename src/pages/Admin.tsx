@@ -12,7 +12,7 @@ import { fmtMXN } from "@/lib/business";
 import { Loader2, UserPlus, Save, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-const ALL_ROLES = ["capturista", "verificador", "autorizador", "admin"] as const;
+const ALL_ROLES = ["capturista", "verificador", "contador", "autorizador", "admin"] as const;
 
 export default function Admin() {
   return (
@@ -212,7 +212,8 @@ function UsuarioRow({ user, onChanged }: { user: Usuario; onChanged: () => void 
     }
 
     // Sincronizar scope solo si tiene rol verificador
-    if (roles.includes("verificador")) {
+    const aplicaScope = roles.includes("verificador") || roles.includes("contador");
+    if (aplicaScope) {
       const toAdd = scopeDeptos.filter((d) => !scopeOriginal.includes(d));
       const toDel = scopeOriginal.filter((d) => !scopeDeptos.includes(d));
       if (toAdd.length > 0) {
@@ -225,7 +226,7 @@ function UsuarioRow({ user, onChanged }: { user: Usuario; onChanged: () => void 
           .delete().eq("user_id", user.id).in("departamento", toDel);
       }
     } else if (scopeOriginal.length > 0) {
-      // Si dejó de ser verificador, limpiar scope
+      // Si dejó de ser verificador/contador, limpiar scope
       await supabase.from("verificador_scope").delete().eq("user_id", user.id);
     }
 
@@ -236,7 +237,7 @@ function UsuarioRow({ user, onChanged }: { user: Usuario; onChanged: () => void 
     onChanged();
   };
 
-  const esVerificador = roles.includes("verificador");
+  const aplicaScope = roles.includes("verificador") || roles.includes("contador");
 
   return (
     <div className="daiki-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -279,10 +280,10 @@ function UsuarioRow({ user, onChanged }: { user: Usuario; onChanged: () => void 
               </div>
             </div>
 
-            {esVerificador && (
+            {aplicaScope && (
               <div className="rounded-md border border-border p-3 space-y-2 bg-muted/30">
                 <div>
-                  <Label className="text-sm font-semibold">Departamentos visibles para este verificador</Label>
+                  <Label className="text-sm font-semibold">Departamentos visibles para este usuario</Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Si no marcas ninguno, verá <strong>todos</strong> los departamentos. Marca uno o varios para limitar su acceso.
                   </p>

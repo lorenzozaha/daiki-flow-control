@@ -41,7 +41,8 @@ interface Orden {
 }
 
 export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
-  const { profile } = useAuth();
+  const { profile, hasRole } = useAuth();
+  const esContador = hasRole("contador") && !hasRole("verificador") && !hasRole("admin");
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [revocables, setRevocables] = useState<Orden[]>([]);
   const [cfg, setCfg] = useState<ConfigLimites | null>(null);
@@ -128,13 +129,15 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
           {bandeja === "verificador" ? "Bandeja de revisión" : "Bandeja de autorización"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {bandeja === "verificador"
+          {esContador
+            ? "Revisa las órdenes y dales VoBo para que pasen al autorizador. Si necesitan corrección, devuélvelas al capturista."
+            : bandeja === "verificador"
             ? "Revisa y aprueba órdenes dentro de tu autoridad. Las órdenes mayores se escalan al autorizador."
             : "Autoriza órdenes que requieren tu firma y revoca aprobaciones de verificador dentro de las 24 h."}
         </p>
       </div>
 
-      {bandeja === "verificador" && cfg && (
+      {bandeja === "verificador" && !esContador && cfg && (
         <div className="daiki-card p-4 md:p-5">
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -197,6 +200,7 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
                 bandeja={bandeja}
                 cfg={cfg}
                 working={working}
+                esContador={esContador}
                 onAprobar={(c) => llamarAccion(o.id, "aprobar", c)}
                 onRechazar={(c) => llamarAccion(o.id, "rechazar", c)}
                 onDevolver={(c) => llamarAccion(o.id, "devolver", c)}
@@ -211,12 +215,13 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
 }
 
 function OrdenCard({
-  orden, bandeja, cfg, working, onAprobar, onRechazar, onDevolver, onVoBo,
+  orden, bandeja, cfg, working, esContador, onAprobar, onRechazar, onDevolver, onVoBo,
 }: {
   orden: Orden;
   bandeja: Bandeja;
   cfg: ConfigLimites | null;
   working: string | null;
+  esContador?: boolean;
   onAprobar: (c?: string) => void;
   onRechazar: (c: string) => void;
   onDevolver: (c: string) => void;
@@ -227,7 +232,12 @@ function OrdenCard({
 
   // En bandeja del verificador, marcar las que NO puede aprobar (escalan)
   const verificadorPuede = ruta === "verificador_silenciosa" || ruta === "verificador_alerta";
-  const puedeAprobar = bandeja === "verificador" ? verificadorPuede : true;
+  // El contador NUNCA puede aprobar — siempre da VoBo (o devuelve)
+  const puedeAprobar = esContador ? false : (bandeja === "verificador" ? verificadorPuede : true);
+  // El contador puede dar VoBo a cualquier orden en revisión, sin importar el monto
+  const puedeVoBo = esContador
+    ? (bandeja === "verificador" && !orden.vobo_verificador_id)
+    : (bandeja === "verificador" && !verificadorPuede && !orden.vobo_verificador_id);
 
   return (
     <div className="daiki-card p-4 md:p-5">
@@ -270,14 +280,19 @@ function OrdenCard({
         </div>
       </div>
 
-      {!puedeAprobar && bandeja === "verificador" && !orden.vobo_verificador_id && (
+      {esContador && bandeja === "verificador" && !orden.vobo_verificador_id && (
+        <div className="text-xs text-muted-foreground bg-secondary px-3 py-2 rounded-md mb-3">
+          Da <strong>VoBo</strong> para escalarla al autorizador con tu visto bueno de contabilidad, o devuélvela al capturista si necesita corrección.
+        </div>
+      )}
+      {!esContador && !puedeAprobar && bandeja === "verificador" && !orden.vobo_verificador_id && (
         <div className="text-xs text-muted-foreground bg-secondary px-3 py-2 rounded-md mb-3">
           Este monto excede tu autoridad. Da <strong>VoBo</strong> para escalarla al autorizador con tu visto bueno.
         </div>
       )}
-      {!puedeAprobar && bandeja === "verificador" && orden.vobo_verificador_id && (
+      {bandeja === "verificador" && orden.vobo_verificador_id && (
         <div className="text-xs bg-accent/10 text-accent border border-accent/30 px-3 py-2 rounded-md mb-3">
-          ✓ Ya diste VoBo a esta orden. Esperando al autorizador.
+          ✓ Esta orden ya tiene VoBo de {orden.vobo_verificador_nombre ?? "un revisor"}. Esperando al autorizador.
         </div>
       )}
 
@@ -296,20 +311,24 @@ function OrdenCard({
           working={working === orden.id + "devolver"}
           onConfirm={(c) => onDevolver(c!)}
         />
-        <ActionDialog
-          title="Rechazar orden"
-          description="Esta acción es definitiva. Indica el motivo."
-          buttonLabel="Rechazar"
-          variant="destructive-outline"
-          icon={<XCircle className="w-4 h-4 mr-1.5" />}
-          requireComment
-          working={working === orden.id + "rechazar"}
-          onConfirm={(c) => onRechazar(c!)}
-        />
-        {bandeja === "verificador" && !puedeAprobar && !orden.vobo_verificador_id && (
+        {!esContador && (
+          <ActionDialog
+            title="Rechazar orden"
+            description="Esta acción es definitiva. Indica el motivo."
+            buttonLabel="Rechazar"
+            variant="destructive-outline"
+            icon={<XCircle className="w-4 h-4 mr-1.5" />}
+            requireComment
+            working={working === orden.id + "rechazar"}
+            onConfirm={(c) => onRechazar(c!)}
+          />
+        )}
+        {puedeVoBo && (
           <ActionDialog
             title="Dar VoBo al autorizador"
-            description="Confirma que ya revisaste esta orden. Quedará marcada con tu visto bueno y pasará al autorizador."
+            description={esContador
+              ? "Confirma que ya revisaste esta orden desde contabilidad. Quedará marcada con tu visto bueno y pasará al autorizador."
+              : "Confirma que ya revisaste esta orden. Quedará marcada con tu visto bueno y pasará al autorizador."}
             buttonLabel="Dar VoBo"
             variant="outline"
             icon={<CheckCircle2 className="w-4 h-4 mr-1.5" />}

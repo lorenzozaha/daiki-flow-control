@@ -50,7 +50,7 @@ const App = () => (
 
             {/* Fases siguientes */}
             <Route path="/bandeja/revision" element={
-              <ProtectedRoute roles={["verificador", "admin"]}>
+              <ProtectedRoute roles={["verificador", "contador", "admin"]}>
                 <AppLayout><BandejaRevision /></AppLayout>
               </ProtectedRoute>
             } />
@@ -60,7 +60,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/dashboard" element={
-              <ProtectedRoute roles={["verificador", "autorizador", "admin"]}>
+              <ProtectedRoute roles={["verificador", "contador", "autorizador", "admin"]}>
                 <AppLayout><Dashboard /></AppLayout>
               </ProtectedRoute>
             } />

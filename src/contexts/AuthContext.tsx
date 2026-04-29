@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "capturista" | "verificador" | "autorizador" | "admin";
+export type AppRole = "capturista" | "verificador" | "contador" | "autorizador" | "admin";
 
 export interface Profile {
   id: string;
@@ -27,7 +27,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const rolePriority: AppRole[] = ["admin", "autorizador", "verificador", "capturista"];
+const rolePriority: AppRole[] = ["admin", "autorizador", "verificador", "contador", "capturista"];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

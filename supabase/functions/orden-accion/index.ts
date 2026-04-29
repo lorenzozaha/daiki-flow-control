@@ -85,27 +85,39 @@ Deno.serve(async (req) => {
 
     const monto = Number(orden.monto);
     const esVerificador = roles.includes("verificador");
+    const esContador = roles.includes("contador");
     const esAutorizador = roles.includes("autorizador");
     const esAdmin = roles.includes("admin");
 
-    // ============== VoBo del verificador (para órdenes que escalan a autorizador) ==============
+    // El contador NUNCA puede aprobar, rechazar ni revocar — solo VoBo y devolver.
+    if (esContador && !esVerificador && !esAutorizador && !esAdmin) {
+      if (accion === "aprobar" || accion === "rechazar" || accion === "revocar" || accion === "confirmar") {
+        return json({ error: "El rol de contador no puede aprobar, rechazar ni revocar órdenes" }, 403);
+      }
+    }
+
+    // ============== VoBo del verificador o contador (para órdenes que escalan a autorizador) ==============
     if (accion === "vobo") {
-      if (!(esVerificador || esAdmin)) {
-        return json({ error: "Solo un verificador puede dar VoBo" }, 403);
+      if (!(esVerificador || esContador || esAdmin)) {
+        return json({ error: "Solo un verificador o contador puede dar VoBo" }, 403);
       }
       if (orden.status !== "en_revision") {
         return json({ error: "La orden no está en revisión" }, 400);
       }
-      // Solo aplica a montos que escalan al autorizador
-      const aprobMaxV = Number(cfg.verificador_auto_aprueba_max);
+      // Para el verificador (gerente): solo aplica a montos que escalan al autorizador.
+      // Para el contador: puede dar VoBo a cualquier orden en revisión.
       const alertaMaxV = Number(cfg.verificador_alerta_activa_max);
-      if (monto <= alertaMaxV) {
+      const esSoloContador = esContador && !esVerificador && !esAdmin;
+      if (!esSoloContador && monto <= alertaMaxV) {
         return json({ error: "Esta orden está dentro de tu autoridad: aprueba directamente" }, 400);
       }
       if (orden.vobo_verificador_id) {
-        return json({ error: "Esta orden ya tiene VoBo del verificador" }, 400);
+        return json({ error: "Esta orden ya tiene VoBo registrado" }, 400);
       }
-      void aprobMaxV;
+
+      const accionTxt = esSoloContador
+        ? "VoBo de contador (escalada al autorizador)"
+        : "VoBo del verificador (escalada al autorizador)";
 
       const ahoraIso = new Date().toISOString();
       const { error: updErr } = await admin.from("ordenes_pago").update({
@@ -119,7 +131,7 @@ Deno.serve(async (req) => {
 
       await admin.from("orden_historial").insert({
         orden_id: ordenId, usuario_id: uid, usuario_nombre: profile.nombre,
-        accion: "VoBo del verificador (escalada al autorizador)", comentario,
+        accion: accionTxt, comentario,
       });
       return json({ ok: true, status: "en_autorizacion", vobo: true });
     }
@@ -219,7 +231,7 @@ Deno.serve(async (req) => {
 
     // ============== DEVOLVER ==============
     if (accion === "devolver") {
-      if (!(esVerificador || esAutorizador || esAdmin)) {
+      if (!(esVerificador || esContador || esAutorizador || esAdmin)) {
         return json({ error: "No tienes permiso para devolver" }, 403);
       }
       if (!["en_revision", "en_autorizacion"].includes(orden.status)) {
