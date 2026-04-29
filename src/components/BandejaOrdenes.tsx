@@ -280,14 +280,19 @@ function OrdenCard({
         </div>
       </div>
 
-      {!puedeAprobar && bandeja === "verificador" && !orden.vobo_verificador_id && (
+      {esContador && bandeja === "verificador" && !orden.vobo_verificador_id && (
+        <div className="text-xs text-muted-foreground bg-secondary px-3 py-2 rounded-md mb-3">
+          Da <strong>VoBo</strong> para escalarla al autorizador con tu visto bueno de contabilidad, o devuélvela al capturista si necesita corrección.
+        </div>
+      )}
+      {!esContador && !puedeAprobar && bandeja === "verificador" && !orden.vobo_verificador_id && (
         <div className="text-xs text-muted-foreground bg-secondary px-3 py-2 rounded-md mb-3">
           Este monto excede tu autoridad. Da <strong>VoBo</strong> para escalarla al autorizador con tu visto bueno.
         </div>
       )}
-      {!puedeAprobar && bandeja === "verificador" && orden.vobo_verificador_id && (
+      {bandeja === "verificador" && orden.vobo_verificador_id && (
         <div className="text-xs bg-accent/10 text-accent border border-accent/30 px-3 py-2 rounded-md mb-3">
-          ✓ Ya diste VoBo a esta orden. Esperando al autorizador.
+          ✓ Esta orden ya tiene VoBo de {orden.vobo_verificador_nombre ?? "un revisor"}. Esperando al autorizador.
         </div>
       )}
 
@@ -306,20 +311,24 @@ function OrdenCard({
           working={working === orden.id + "devolver"}
           onConfirm={(c) => onDevolver(c!)}
         />
-        <ActionDialog
-          title="Rechazar orden"
-          description="Esta acción es definitiva. Indica el motivo."
-          buttonLabel="Rechazar"
-          variant="destructive-outline"
-          icon={<XCircle className="w-4 h-4 mr-1.5" />}
-          requireComment
-          working={working === orden.id + "rechazar"}
-          onConfirm={(c) => onRechazar(c!)}
-        />
-        {bandeja === "verificador" && !puedeAprobar && !orden.vobo_verificador_id && (
+        {!esContador && (
+          <ActionDialog
+            title="Rechazar orden"
+            description="Esta acción es definitiva. Indica el motivo."
+            buttonLabel="Rechazar"
+            variant="destructive-outline"
+            icon={<XCircle className="w-4 h-4 mr-1.5" />}
+            requireComment
+            working={working === orden.id + "rechazar"}
+            onConfirm={(c) => onRechazar(c!)}
+          />
+        )}
+        {puedeVoBo && (
           <ActionDialog
             title="Dar VoBo al autorizador"
-            description="Confirma que ya revisaste esta orden. Quedará marcada con tu visto bueno y pasará al autorizador."
+            description={esContador
+              ? "Confirma que ya revisaste esta orden desde contabilidad. Quedará marcada con tu visto bueno y pasará al autorizador."
+              : "Confirma que ya revisaste esta orden. Quedará marcada con tu visto bueno y pasará al autorizador."}
             buttonLabel="Dar VoBo"
             variant="outline"
             icon={<CheckCircle2 className="w-4 h-4 mr-1.5" />}
