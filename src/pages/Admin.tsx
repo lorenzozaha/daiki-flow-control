@@ -280,10 +280,10 @@ function UsuarioRow({ user, onChanged }: { user: Usuario; onChanged: () => void 
               </div>
             </div>
 
-            {esVerificador && (
+            {aplicaScope && (
               <div className="rounded-md border border-border p-3 space-y-2 bg-muted/30">
                 <div>
-                  <Label className="text-sm font-semibold">Departamentos visibles para este verificador</Label>
+                  <Label className="text-sm font-semibold">Departamentos visibles para este usuario</Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Si no marcas ninguno, verá <strong>todos</strong> los departamentos. Marca uno o varios para limitar su acceso.
                   </p>
