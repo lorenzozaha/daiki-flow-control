@@ -212,7 +212,8 @@ function UsuarioRow({ user, onChanged }: { user: Usuario; onChanged: () => void 
     }
 
     // Sincronizar scope solo si tiene rol verificador
-    if (roles.includes("verificador")) {
+    const aplicaScope = roles.includes("verificador") || roles.includes("contador");
+    if (aplicaScope) {
       const toAdd = scopeDeptos.filter((d) => !scopeOriginal.includes(d));
       const toDel = scopeOriginal.filter((d) => !scopeDeptos.includes(d));
       if (toAdd.length > 0) {
@@ -225,7 +226,7 @@ function UsuarioRow({ user, onChanged }: { user: Usuario; onChanged: () => void 
           .delete().eq("user_id", user.id).in("departamento", toDel);
       }
     } else if (scopeOriginal.length > 0) {
-      // Si dejó de ser verificador, limpiar scope
+      // Si dejó de ser verificador/contador, limpiar scope
       await supabase.from("verificador_scope").delete().eq("user_id", user.id);
     }
 
@@ -236,7 +237,7 @@ function UsuarioRow({ user, onChanged }: { user: Usuario; onChanged: () => void 
     onChanged();
   };
 
-  const esVerificador = roles.includes("verificador");
+  const aplicaScope = roles.includes("verificador") || roles.includes("contador");
 
   return (
     <div className="daiki-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
