@@ -167,6 +167,7 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
                 key={o.id}
                 orden={o}
                 working={working}
+                onConfirmar={() => llamarAccion(o.id, "confirmar")}
                 onRevocar={(c) => llamarAccion(o.id, "revocar", c)}
               />
             ))}
