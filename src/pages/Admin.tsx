@@ -12,7 +12,7 @@ import { fmtMXN } from "@/lib/business";
 import { Loader2, UserPlus, Save, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-const ALL_ROLES = ["capturista", "verificador", "autorizador", "admin"] as const;
+const ALL_ROLES = ["capturista", "verificador", "contador", "autorizador", "admin"] as const;
 
 export default function Admin() {
   return (
