@@ -200,6 +200,7 @@ export function BandejaOrdenes({ bandeja }: { bandeja: Bandeja }) {
                 bandeja={bandeja}
                 cfg={cfg}
                 working={working}
+                esContador={esContador}
                 onAprobar={(c) => llamarAccion(o.id, "aprobar", c)}
                 onRechazar={(c) => llamarAccion(o.id, "rechazar", c)}
                 onDevolver={(c) => llamarAccion(o.id, "devolver", c)}
