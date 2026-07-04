@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 import Login from "./pages/Login";
+import OAuthConsent from "./pages/OAuthConsent";
 import CambiarContrasena from "./pages/CambiarContrasena";
 import Home from "./pages/Home";
 import NuevaOrden from "./pages/NuevaOrden";

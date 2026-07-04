@@ -49,7 +49,7 @@ export default function Login() {
       return;
     }
     toast.success("Bienvenido a Daiki");
-    navigate("/", { replace: true });
+    navigate(next, { replace: true });
   };
 
   const handleBootstrap = async (e: React.FormEvent) => {
@@ -77,7 +77,7 @@ export default function Login() {
       return;
     }
     toast.success("Administrador creado correctamente");
-    navigate("/", { replace: true });
+    navigate(next, { replace: true });
   };
 
   if (loading || checking) {
