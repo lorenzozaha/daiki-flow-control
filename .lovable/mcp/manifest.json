@@ -1,0 +1,236 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://wgkzvozzdslbasntjhbb.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "daiki-autorizaciones-mcp",
+      "version": "0.1.0",
+      "title": "Daiki · Autorizaciones"
+    },
+    "tools": [
+      {
+        "name": "list_ordenes",
+        "title": "Listar órdenes de pago",
+        "description": "Lista órdenes de pago visibles para el usuario autenticado (respeta RLS, rol y scope por departamento). Filtros opcionales por status, departamento y límite.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "status": {
+              "description": "Filtrar por estatus de la orden.",
+              "type": "string",
+              "enum": [
+                "borrador",
+                "en_revision",
+                "vobo_dado",
+                "aprobada",
+                "rechazada",
+                "devuelta",
+                "revocada",
+                "pagada"
+              ]
+            },
+            "departamento": {
+              "description": "Filtrar por departamento.",
+              "type": "string"
+            },
+            "limit": {
+              "default": 25,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_orden",
+        "title": "Obtener orden de pago",
+        "description": "Obtiene el detalle completo de una orden de pago por su ID (UUID).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "UUID de la orden de pago."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_orden",
+        "title": "Crear orden de pago",
+        "description": "Crea una nueva orden de pago (borrador o enviada a revisión). Requiere rol capturista o admin. El solicitante es el usuario autenticado.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "empresa_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "UUID de la empresa."
+            },
+            "concepto": {
+              "type": "string",
+              "minLength": 3
+            },
+            "proveedor_nombre": {
+              "type": "string",
+              "minLength": 1
+            },
+            "proveedor_rfc": {
+              "type": "string"
+            },
+            "monto": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "moneda": {
+              "default": "MXN",
+              "type": "string"
+            },
+            "departamento": {
+              "type": "string",
+              "minLength": 1
+            },
+            "categoria_gasto": {
+              "type": "string",
+              "minLength": 1
+            },
+            "centro_costo": {
+              "type": "string"
+            },
+            "prioridad": {
+              "default": "media",
+              "type": "string",
+              "enum": [
+                "baja",
+                "media",
+                "alta",
+                "urgente"
+              ]
+            },
+            "fecha_pago_requerida": {
+              "description": "Formato YYYY-MM-DD.",
+              "type": "string"
+            },
+            "notas": {
+              "type": "string"
+            },
+            "enviar_a_revision": {
+              "default": false,
+              "description": "Si true, la orden se envía directamente a revisión; si no, queda como borrador.",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "empresa_id",
+            "concepto",
+            "proveedor_nombre",
+            "monto",
+            "departamento",
+            "categoria_gasto"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "orden_accion",
+        "title": "Ejecutar acción sobre orden",
+        "description": "Ejecuta una acción de flujo sobre una orden: aprobar, rechazar, devolver, revocar (solo autorizador), vobo (verificador/contador) o confirmar. La lógica de permisos y umbrales se valida en el backend según el rol del usuario.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "orden_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "accion": {
+              "type": "string",
+              "enum": [
+                "aprobar",
+                "rechazar",
+                "devolver",
+                "revocar",
+                "vobo",
+                "confirmar"
+              ]
+            },
+            "comentario": {
+              "description": "Comentario o motivo (obligatorio para rechazar/devolver).",
+              "type": "string"
+            }
+          },
+          "required": [
+            "orden_id",
+            "accion"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "dashboard_summary",
+        "title": "Resumen del dashboard",
+        "description": "Devuelve conteos por estatus y montos totales de las órdenes visibles para el usuario autenticado (respeta RLS y scope por departamento).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "dias": {
+              "default": 30,
+              "description": "Ventana en días hacia atrás.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 365
+            }
+          }
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
