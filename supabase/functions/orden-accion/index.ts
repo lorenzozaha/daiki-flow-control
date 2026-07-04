@@ -260,6 +260,13 @@ Deno.serve(async (req) => {
     else if (monto <= unaFirmaMax) ruta = "autorizador_una";
     else ruta = "autorizador_dos";
 
+    // Si la orden ya fue escalada al autorizador (VoBo previo), el autorizador
+    // puede aprobarla directamente aunque el monto caiga en ruta de verificador.
+    if (orden.status === "en_autorizacion" && (ruta === "verificador_silenciosa" || ruta === "verificador_alerta")) {
+      ruta = "autorizador_una";
+    }
+
+
     // ----- Caso verificador aprueba (rutas 1 y 2) -----
     if (ruta === "verificador_silenciosa" || ruta === "verificador_alerta") {
       if (!(esVerificador || esAdmin)) {
