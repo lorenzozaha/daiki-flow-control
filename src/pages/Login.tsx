@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,10 @@ type Mode = "login" | "bootstrap";
 export default function Login() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const rawNext = params.get("next");
+  // Only same-origin relative paths.
+  const next = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
   const [mode, setMode] = useState<Mode>("login");
   const [checking, setChecking] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -20,10 +24,10 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [nombre, setNombre] = useState("");
 
-  // Si ya hay sesión, mandar a home
+  // Si ya hay sesión, mandar a next (o home)
   useEffect(() => {
-    if (!loading && user) navigate("/", { replace: true });
-  }, [user, loading, navigate]);
+    if (!loading && user) navigate(next, { replace: true });
+  }, [user, loading, navigate, next]);
 
   // Detectar si es la primera vez (no hay ningún admin)
   useEffect(() => {
