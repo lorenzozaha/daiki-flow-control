@@ -32,6 +32,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="/cambiar-contrasena" element={
               <ProtectedRoute><CambiarContrasena /></ProtectedRoute>
             } />
