@@ -50,6 +50,13 @@ export default function Dashboard() {
   const [scopeDeptos, setScopeDeptos] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Filtros para pestaña "Órdenes"
+  const [ordQ, setOrdQ] = useState("");
+  const [ordStatus, setOrdStatus] = useState<string>("todos");
+  const [ordDepto, setOrdDepto] = useState<string>("todos");
+
+  const puedeVerTodas = hasRole("autorizador") || hasRole("admin");
+
   const today = new Date();
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const [desde, setDesde] = useState<Date>(firstOfMonth);
