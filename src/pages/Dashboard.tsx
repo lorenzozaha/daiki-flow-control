@@ -1,18 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { format, subMonths, startOfMonth, endOfMonth, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, Loader2, TrendingUp, Clock, CheckCircle2, XCircle, Download, FileText } from "lucide-react";
+import { CalendarIcon, Loader2, TrendingUp, Clock, CheckCircle2, XCircle, Download, FileText, Search } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { fmtMXN, STATUS_LABEL } from "@/lib/business";
+import { fmtMXN, fmtFechaCorta, STATUS_LABEL } from "@/lib/business";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { StatusBadge } from "@/components/StatusBadge";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell,
@@ -45,6 +49,13 @@ export default function Dashboard() {
   const [perfiles, setPerfiles] = useState<Record<string, string>>({});
   const [scopeDeptos, setScopeDeptos] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Filtros para pestaña "Órdenes"
+  const [ordQ, setOrdQ] = useState("");
+  const [ordStatus, setOrdStatus] = useState<string>("todos");
+  const [ordDepto, setOrdDepto] = useState<string>("todos");
+
+  const puedeVerTodas = hasRole("autorizador") || hasRole("admin");
 
   const today = new Date();
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -193,6 +204,30 @@ export default function Dashboard() {
     return buckets;
   }, [ordenes]);
 
+  // ---------- Órdenes filtradas (pestaña "Órdenes") ----------
+  const deptosDisponibles = useMemo(() => {
+    return Array.from(new Set(ordenes.map((o) => o.departamento).filter(Boolean))).sort();
+  }, [ordenes]);
+
+  const ordenesFiltradas = useMemo(() => {
+    const q = ordQ.trim().toLowerCase();
+    return ordenes.filter((o) => {
+      if (ordStatus !== "todos" && o.status !== ordStatus) return false;
+      if (ordDepto !== "todos" && o.departamento !== ordDepto) return false;
+      if (q) {
+        const hay = `${o.folio} ${o.concepto} ${o.proveedor_nombre ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [ordenes, ordQ, ordStatus, ordDepto]);
+
+  const totalesFiltrados = useMemo(() => {
+    const total = ordenesFiltradas.reduce((s, o) => s + Number(o.monto), 0);
+    const aprobado = ordenesFiltradas.filter((o) => o.status === "aprobada").reduce((s, o) => s + Number(o.monto), 0);
+    return { total, aprobado };
+  }, [ordenesFiltradas]);
+
   // ---------- Exportes ----------
   const periodoLabel = `${format(desde, "dd MMM yyyy", { locale: es })} – ${format(hasta, "dd MMM yyyy", { locale: es })}`;
   const fnameBase = `${format(desde, "yyyy-MM-dd")}_a_${format(hasta, "yyyy-MM-dd")}`;
@@ -206,15 +241,15 @@ export default function Dashboard() {
     URL.revokeObjectURL(url);
   };
 
-  const exportarOrdenesCSV = () => {
+  const exportarOrdenesCSV = (rowsSource: Orden[] = ordenes, fnameSuffix = "") => {
     const headers = ["folio", "fecha", "concepto", "proveedor", "departamento", "categoria", "monto", "status", "capturista", "verificador", "autorizador", "autorizado_at"];
-    const rows: (string | number)[][] = ordenes.map((o) => {
+    const rows: (string | number)[][] = rowsSource.map((o) => {
       const capturista = perfiles[o.solicitante_id] ?? "";
       const verificador = o.vobo_verificador_nombre ?? (o.autorizado_por_rol === "verificador" && o.autorizado_por_id ? (perfiles[o.autorizado_por_id] ?? "") : "");
       const autorizador = o.autorizado_por_rol === "autorizador" && o.autorizado_por_id ? (perfiles[o.autorizado_por_id] ?? "") : "";
       return [o.folio, o.created_at, o.concepto, o.proveedor_nombre ?? "", o.departamento, o.categoria_gasto, o.monto, o.status, capturista, verificador, autorizador, o.autorizado_at ?? ""];
     });
-    downloadCSV([headers, ...rows], `ordenes_${fnameBase}.csv`);
+    downloadCSV([headers, ...rows], `ordenes${fnameSuffix}_${fnameBase}.csv`);
   };
 
   const exportarMatrizCSV = () => {
@@ -348,16 +383,17 @@ export default function Dashboard() {
       </div>
 
       <Tabs defaultValue="resumen" className="w-full">
-        <TabsList className="grid grid-cols-3 w-full md:w-auto">
+        <TabsList className={cn("grid w-full md:w-auto", puedeVerTodas ? "grid-cols-4" : "grid-cols-3")}>
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
           <TabsTrigger value="depto">Depto y categoría</TabsTrigger>
           <TabsTrigger value="aging">Aging</TabsTrigger>
+          {puedeVerTodas && <TabsTrigger value="ordenes">Órdenes</TabsTrigger>}
         </TabsList>
 
         {/* Resumen */}
         <TabsContent value="resumen" className="space-y-4 mt-4">
           <div className="flex justify-end">
-            <Button onClick={exportarOrdenesCSV} variant="outline" className="h-9 gap-2">
+            <Button onClick={() => exportarOrdenesCSV()} variant="outline" className="h-9 gap-2">
               <Download className="w-4 h-4" /> CSV de órdenes
             </Button>
           </div>
@@ -552,6 +588,125 @@ export default function Dashboard() {
             </div>
           )}
         </TabsContent>
+        {/* Órdenes (autorizador/admin) */}
+        {puedeVerTodas && (
+          <TabsContent value="ordenes" className="space-y-4 mt-4">
+            <div className="rounded-md border border-info/30 bg-info/10 px-3 py-2 text-xs sm:text-sm text-muted-foreground">
+              Mostrando órdenes de <span className="font-semibold text-foreground">{format(desde, "dd MMM yyyy", { locale: es })}</span> a <span className="font-semibold text-foreground">{format(hasta, "dd MMM yyyy", { locale: es })}</span>. Ajusta el rango arriba para ampliar.
+            </div>
+
+            <div className="daiki-card p-3 flex flex-col sm:flex-row gap-2 sticky top-16 z-10 bg-card">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input value={ordQ} onChange={(e) => setOrdQ(e.target.value)} placeholder="Buscar por folio, concepto, proveedor..." className="pl-9" />
+              </div>
+              <Select value={ordStatus} onValueChange={setOrdStatus}>
+                <SelectTrigger className="sm:w-48"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los estatus</SelectItem>
+                  <SelectItem value="borrador">Borrador</SelectItem>
+                  <SelectItem value="en_revision">En revisión</SelectItem>
+                  <SelectItem value="en_autorizacion">En autorización</SelectItem>
+                  <SelectItem value="aprobada">Aprobada</SelectItem>
+                  <SelectItem value="rechazada">Rechazada</SelectItem>
+                  <SelectItem value="devuelta">Devuelta</SelectItem>
+                  <SelectItem value="revocada">Revocada</SelectItem>
+                  <SelectItem value="pagada">Pagada</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={ordDepto} onValueChange={setOrdDepto}>
+                <SelectTrigger className="sm:w-48"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los deptos</SelectItem>
+                  {deptosDisponibles.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button onClick={() => exportarOrdenesCSV(ordenesFiltradas, "_filtradas")} variant="outline" className="h-10 gap-2">
+                <Download className="w-4 h-4" /> CSV
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm px-1">
+              <span><span className="font-semibold">{ordenesFiltradas.length}</span> órdenes</span>
+              <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{fmtMXN(totalesFiltrados.total)}</span></span>
+              <span className="text-muted-foreground">Aprobado: <span className="font-semibold text-accent">{fmtMXN(totalesFiltrados.aprobado)}</span></span>
+            </div>
+
+            {ordenesFiltradas.length === 0 ? (
+              <div className="daiki-card p-10 text-center text-sm text-muted-foreground">
+                Sin órdenes que coincidan con los filtros.
+              </div>
+            ) : (
+              <div className="daiki-card overflow-hidden">
+                {/* Desktop */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-secondary text-secondary-foreground">
+                      <tr className="text-left">
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wider">Folio</th>
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wider">Fecha</th>
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wider">Concepto</th>
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wider">Depto</th>
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wider">Categoría</th>
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-right">Monto</th>
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wider">Estatus</th>
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wider">Capturista</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ordenesFiltradas.map((o) => (
+                        <tr key={o.id} className="border-t border-border hover:bg-secondary/40 transition-colors">
+                          <td className="px-3 py-3 font-mono text-xs">#{String(o.folio).padStart(5, "0")}</td>
+                          <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{fmtFechaCorta(o.created_at)}</td>
+                          <td className="px-3 py-3 max-w-xs">
+                            <div className="font-medium line-clamp-1">{o.concepto}</div>
+                            {o.proveedor_nombre && <div className="text-xs text-muted-foreground line-clamp-1">{o.proveedor_nombre}</div>}
+                          </td>
+                          <td className="px-3 py-3 text-muted-foreground">{o.departamento}</td>
+                          <td className="px-3 py-3 text-muted-foreground">{o.categoria_gasto}</td>
+                          <td className="px-3 py-3 text-right font-semibold tabular-nums">{fmtMXN(Number(o.monto))}</td>
+                          <td className="px-3 py-3"><StatusBadge status={o.status} /></td>
+                          <td className="px-3 py-3 text-muted-foreground text-xs">{perfiles[o.solicitante_id] ?? "—"}</td>
+                          <td className="px-3 py-3 text-right">
+                            <Button asChild size="sm" variant="ghost">
+                              <Link to={`/ordenes/${o.id}`}>Ver</Link>
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile */}
+                <div className="md:hidden divide-y divide-border">
+                  {ordenesFiltradas.map((o) => (
+                    <Link to={`/ordenes/${o.id}`} key={o.id} className="block p-4 hover:bg-secondary/40">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="font-mono">#{String(o.folio).padStart(5, "0")}</span>
+                            <span>·</span>
+                            <span>{o.categoria_gasto}</span>
+                          </div>
+                          <div className="font-semibold mt-1 line-clamp-2">{o.concepto}</div>
+                          {o.proveedor_nombre && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{o.proveedor_nombre}</div>}
+                          <div className="text-xs text-muted-foreground mt-1">{o.departamento} · {fmtFechaCorta(o.created_at)}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">Capturó: {perfiles[o.solicitante_id] ?? "—"}</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-extrabold tabular-nums">{fmtMXN(Number(o.monto))}</div>
+                          <div className="mt-1"><StatusBadge status={o.status} /></div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
