@@ -359,10 +359,11 @@ export default function Dashboard() {
       </div>
 
       <Tabs defaultValue="resumen" className="w-full">
-        <TabsList className="grid grid-cols-3 w-full md:w-auto">
+        <TabsList className={cn("grid w-full md:w-auto", puedeVerTodas ? "grid-cols-4" : "grid-cols-3")}>
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
           <TabsTrigger value="depto">Depto y categoría</TabsTrigger>
           <TabsTrigger value="aging">Aging</TabsTrigger>
+          {puedeVerTodas && <TabsTrigger value="ordenes">Órdenes</TabsTrigger>}
         </TabsList>
 
         {/* Resumen */}
