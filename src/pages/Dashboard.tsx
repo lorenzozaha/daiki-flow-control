@@ -204,6 +204,30 @@ export default function Dashboard() {
     return buckets;
   }, [ordenes]);
 
+  // ---------- Órdenes filtradas (pestaña "Órdenes") ----------
+  const deptosDisponibles = useMemo(() => {
+    return Array.from(new Set(ordenes.map((o) => o.departamento).filter(Boolean))).sort();
+  }, [ordenes]);
+
+  const ordenesFiltradas = useMemo(() => {
+    const q = ordQ.trim().toLowerCase();
+    return ordenes.filter((o) => {
+      if (ordStatus !== "todos" && o.status !== ordStatus) return false;
+      if (ordDepto !== "todos" && o.departamento !== ordDepto) return false;
+      if (q) {
+        const hay = `${o.folio} ${o.concepto} ${o.proveedor_nombre ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [ordenes, ordQ, ordStatus, ordDepto]);
+
+  const totalesFiltrados = useMemo(() => {
+    const total = ordenesFiltradas.reduce((s, o) => s + Number(o.monto), 0);
+    const aprobado = ordenesFiltradas.filter((o) => o.status === "aprobada").reduce((s, o) => s + Number(o.monto), 0);
+    return { total, aprobado };
+  }, [ordenesFiltradas]);
+
   // ---------- Exportes ----------
   const periodoLabel = `${format(desde, "dd MMM yyyy", { locale: es })} – ${format(hasta, "dd MMM yyyy", { locale: es })}`;
   const fnameBase = `${format(desde, "yyyy-MM-dd")}_a_${format(hasta, "yyyy-MM-dd")}`;
