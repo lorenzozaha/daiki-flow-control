@@ -1,18 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { format, subMonths, startOfMonth, endOfMonth, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, Loader2, TrendingUp, Clock, CheckCircle2, XCircle, Download, FileText } from "lucide-react";
+import { CalendarIcon, Loader2, TrendingUp, Clock, CheckCircle2, XCircle, Download, FileText, Search } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { fmtMXN, STATUS_LABEL } from "@/lib/business";
+import { fmtMXN, fmtFechaCorta, STATUS_LABEL } from "@/lib/business";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { StatusBadge } from "@/components/StatusBadge";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell,
