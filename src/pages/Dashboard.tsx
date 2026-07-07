@@ -210,15 +210,15 @@ export default function Dashboard() {
     URL.revokeObjectURL(url);
   };
 
-  const exportarOrdenesCSV = () => {
+  const exportarOrdenesCSV = (rowsSource: Orden[] = ordenes, fnameSuffix = "") => {
     const headers = ["folio", "fecha", "concepto", "proveedor", "departamento", "categoria", "monto", "status", "capturista", "verificador", "autorizador", "autorizado_at"];
-    const rows: (string | number)[][] = ordenes.map((o) => {
+    const rows: (string | number)[][] = rowsSource.map((o) => {
       const capturista = perfiles[o.solicitante_id] ?? "";
       const verificador = o.vobo_verificador_nombre ?? (o.autorizado_por_rol === "verificador" && o.autorizado_por_id ? (perfiles[o.autorizado_por_id] ?? "") : "");
       const autorizador = o.autorizado_por_rol === "autorizador" && o.autorizado_por_id ? (perfiles[o.autorizado_por_id] ?? "") : "";
       return [o.folio, o.created_at, o.concepto, o.proveedor_nombre ?? "", o.departamento, o.categoria_gasto, o.monto, o.status, capturista, verificador, autorizador, o.autorizado_at ?? ""];
     });
-    downloadCSV([headers, ...rows], `ordenes_${fnameBase}.csv`);
+    downloadCSV([headers, ...rows], `ordenes${fnameSuffix}_${fnameBase}.csv`);
   };
 
   const exportarMatrizCSV = () => {
