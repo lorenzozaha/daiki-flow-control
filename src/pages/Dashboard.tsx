@@ -361,7 +361,7 @@ export default function Dashboard() {
         {/* Resumen */}
         <TabsContent value="resumen" className="space-y-4 mt-4">
           <div className="flex justify-end">
-            <Button onClick={exportarOrdenesCSV} variant="outline" className="h-9 gap-2">
+            <Button onClick={() => exportarOrdenesCSV()} variant="outline" className="h-9 gap-2">
               <Download className="w-4 h-4" /> CSV de órdenes
             </Button>
           </div>
